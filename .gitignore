@@ -9,6 +9,9 @@ node_modules/
 # Vercel
 .vercel
 
+# Claude Code (config local)
+.claude/
+
 # Sistema operativo / editor
 .DS_Store
 Thumbs.db
