@@ -1,0 +1,12 @@
+{
+  "name": "ia-para-tu-negocio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo VeyharCorp: generador de afiches con IA (Claude) — front estático + proxy serverless en Vercel + leads en Supabase.",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "author": "Harvey Aquino"
+}

@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- ============================================================
+     IA PARA TU NEGOCIO — VeyharCorp
+     Producción en Vercel: el front llama a /api/generate (proxy
+     serverless que guarda la API key y registra leads en Supabase).
+     Patrón Blueprint Engine: la IA decide, la app renderiza.
+     ============================================================ -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IA para tu Negocio · VeyharCorp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#0E1A15; --surface:#F4F3EC; --card:#FFFFFF;
+    --green:#0F7A52; --green-bright:#15B077; --green-tint:#E7F2EC;
+    --amber:#E0A52E; --muted:#5C6962; --line:#E3E2D7;
+    --shadow:0 1px 2px rgba(14,26,21,.05),0 8px 24px rgba(14,26,21,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:var(--surface); color:var(--ink);
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+  }
+  .wrap{max-width:540px; margin:0 auto; padding:0 18px 64px}
+
+  /* ---- Cabecera / marca VeyharCorp ---- */
+  header{padding:30px 0 8px}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    font-weight:600; color:var(--green);
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--green-bright)}
+  h1{
+    font-family:"Bricolage Grotesque",sans-serif; font-weight:800;
+    font-size:clamp(30px,8vw,40px); line-height:1.04; letter-spacing:-.02em;
+    margin:14px 0 8px;
+  }
+  h1 .hl{color:var(--green)}
+  .sub{color:var(--muted); font-size:15px; max-width:42ch}
+
+  /* ---- Pilares ---- */
+  .pillars{display:grid; gap:12px; margin-top:26px}
+  .pillar{
+    width:100%; text-align:left; cursor:pointer; background:var(--card);
+    border:1px solid var(--line); border-radius:16px; padding:16px 18px;
+    display:flex; align-items:center; gap:14px; box-shadow:var(--shadow);
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .pillar:hover{transform:translateY(-2px); border-color:var(--green-bright)}
+  .pillar .ico{
+    width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;
+    background:var(--green-tint); font-size:22px;
+  }
+  .pillar .ptxt b{display:block; font-family:"Bricolage Grotesque",sans-serif; font-size:18px}
+  .pillar .ptxt span{font-size:13px; color:var(--muted)}
+  .pillar .arr{margin-left:auto; color:var(--muted); font-size:20px; transition:transform .2s}
+  .pillar[aria-expanded="true"] .arr{transform:rotate(90deg); color:var(--green)}
+
+  .recipes{display:none; gap:10px; padding:6px 2px 4px; grid-template-columns:1fr}
+  .recipes.open{display:grid}
+  .recipe{
+    text-align:left; cursor:pointer; background:#fff; border:1px solid var(--line);
+    border-radius:12px; padding:13px 15px; font-size:15px; font-weight:500;
+    display:flex; align-items:center; gap:10px;
+  }
+  .recipe:hover{border-color:var(--green-bright); background:var(--green-tint)}
+  .recipe .rk{font-size:18px}
+
+  /* ---- Panel de la receta (inputs + resultado) ---- */
+  .panel{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    box-shadow:var(--shadow); padding:20px; margin-top:22px; display:none;
+  }
+  .panel.open{display:block}
+  .panel .ptitle{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:20px; margin:0 0 4px}
+  .panel .phint{color:var(--muted); font-size:14px; margin:0 0 16px}
+  label{display:block; font-size:13px; font-weight:600; margin:0 0 6px}
+  input.f, textarea.f{
+    width:100%; border:1px solid var(--line); border-radius:11px; padding:12px 13px;
+    font:inherit; font-size:16px; background:#fdfdfb; margin-bottom:14px; resize:vertical;
+  }
+  input.f:focus, textarea.f:focus{outline:2px solid var(--green-bright); border-color:transparent}
+  textarea.f{min-height:84px}
+
+  .btn{
+    width:100%; border:none; cursor:pointer; border-radius:12px; padding:14px;
+    font:inherit; font-weight:700; font-size:16px; color:#fff;
+    background:var(--green); display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:background .15s;
+  }
+  .btn:hover{background:#0c6745}
+  .btn:disabled{opacity:.6; cursor:default}
+  .btn.ghost{background:transparent; color:var(--green); border:1px solid var(--line); margin-top:10px}
+  .btn.ghost:hover{background:var(--green-tint)}
+
+  .result{margin-top:18px; display:none}
+  .result.open{display:block}
+  .result .rlabel{font-size:12px; letter-spacing:.1em; text-transform:uppercase; font-weight:600; color:var(--green); margin-bottom:8px}
+  .out{
+    white-space:pre-wrap; background:var(--green-tint); border:1px solid #cfe6d9;
+    border-radius:13px; padding:15px; font-size:15px; line-height:1.55;
+  }
+  .copy{margin-top:10px}
+
+  /* ---- Firma: la receta (el prompt) — elemento que enseña ---- */
+  details.recipe-reveal{margin-top:14px; border-top:1px dashed var(--line); padding-top:12px}
+  details.recipe-reveal summary{
+    cursor:pointer; font-weight:600; font-size:14px; color:var(--ink);
+    display:flex; align-items:center; gap:8px; list-style:none;
+  }
+  details.recipe-reveal summary::-webkit-details-marker{display:none}
+  details.recipe-reveal summary .key{color:var(--amber)}
+  .promptbox{
+    margin-top:10px; font-size:13.5px; color:var(--muted); background:#fbfaf4;
+    border:1px solid var(--line); border-radius:11px; padding:13px; white-space:pre-wrap;
+  }
+  .promptnote{font-size:12.5px; color:var(--muted); margin-top:8px}
+
+  .err{background:#fdeceb;border:1px solid #f3c6c2;color:#9a2b22;border-radius:12px;padding:13px;font-size:14px;margin-top:14px;display:none}
+  .err.open{display:block}
+
+  .spinner{width:16px;height:16px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---- Cierre + footer ---- */
+  .dare{
+    margin-top:34px; text-align:center; font-family:"Bricolage Grotesque",sans-serif;
+    font-weight:800; font-size:22px; color:var(--ink);
+  }
+  .dare span{color:var(--amber)}
+  footer{margin-top:18px; text-align:center; color:var(--muted); font-size:13px; padding-top:18px; border-top:1px solid var(--line)}
+  footer a{color:var(--green); font-weight:600; text-decoration:none}
+  footer a:hover{text-decoration:underline}
+
+  /* ---- Demo en vivo (modo show / proyector) ---- */
+  .show{
+    margin-top:26px; background:linear-gradient(160deg,#10271D,#0E1A15 72%);
+    border-radius:22px; padding:28px 22px; color:#fff; text-align:center;
+    box-shadow:0 18px 44px rgba(14,26,21,.20);
+  }
+  .show-eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--green-bright)}
+  .show-h{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(22px,6.4vw,30px);line-height:1.1;margin:12px 0 18px}
+  .show-input{
+    width:100%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:#fff;
+    border-radius:13px;padding:15px;font:inherit;font-size:17px;text-align:center;margin-bottom:12px;
+  }
+  .show-input::placeholder{color:rgba(255,255,255,.5)}
+  .show-input:focus{outline:2px solid var(--green-bright);border-color:transparent}
+  .show-btn{background:var(--green-bright);font-size:17px}
+  .show-btn:hover{background:#11a06c}
+  .show-stage{margin-top:18px;display:grid;gap:12px;text-align:left}
+  .scard{
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;
+    padding:15px 16px;opacity:0;transform:translateY(8px);animation:rise .4s ease forwards;
+  }
+  @keyframes rise{to{opacity:1;transform:none}}
+  .scard .stag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--green-bright);margin-bottom:7px}
+  .scard .sbody{white-space:pre-wrap;font-size:15px;line-height:1.55;color:#f3f6f4;min-height:1.2em}
+  .sbody.caret::after{content:"▋";color:var(--green-bright);animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* ---- Afiche generado (el momento visual) ---- */
+  .flyer{
+    position:relative; border-radius:18px; overflow:hidden; color:#fff; text-align:left;
+    background:linear-gradient(150deg,var(--b1),var(--b2)); padding:30px 24px 22px;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);
+    animation:flypop .5s cubic-bezier(.2,.9,.3,1.3) both;
+  }
+  @keyframes flypop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+  .flyer::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 80% 0%,rgba(255,255,255,.12),transparent 60%);pointer-events:none}
+  .flyer-in{position:relative}
+  .flyer-rubro{display:inline-block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;background:rgba(255,255,255,.15);padding:5px 11px;border-radius:99px}
+  .flyer-name{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(26px,8vw,38px);line-height:1.02;margin:14px 0 4px}
+  .flyer-eslogan{font-size:15px;opacity:.9;margin-bottom:18px}
+  .flyer-badge{
+    display:inline-block;background:var(--ac);color:#0E1A15;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+    font-size:clamp(22px,7vw,32px);padding:8px 16px;border-radius:12px;transform:rotate(-3deg);
+    box-shadow:0 8px 20px rgba(0,0,0,.25);animation:badgepop .5s .35s both cubic-bezier(.2,.9,.3,1.5);
+  }
+  @keyframes badgepop{from{opacity:0;transform:rotate(-3deg) scale(.55)}to{opacity:1;transform:rotate(-3deg) scale(1)}}
+  .flyer-detalle{font-size:15px;margin:12px 0 18px;opacity:.95}
+  .flyer-cta{display:inline-block;border:1.5px solid rgba(255,255,255,.5);border-radius:99px;padding:9px 18px;font-weight:700;font-size:14px}
+  .flyer-tags{margin-top:16px;font-size:13px;color:var(--ac);font-weight:600}
+  .flyer-mark{margin-top:14px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.55}
+
+  .divider{display:flex;align-items:center;gap:12px;margin:30px 0 8px;color:var(--muted);font-size:13px;font-weight:600;white-space:nowrap}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow"><span class="dot"></span> VeyharCorp · Laboratorio de productos con IA</span>
+    <h1>Tu negocio,<br>con <span class="hl">superpoderes de IA</span></h1>
+    <p class="sub">Mira lo que la IA hace por un negocio en 10 segundos. Después lo pruebas con el tuyo.</p>
+  </header>
+
+  <!-- ===== DEMO EN VIVO (modo show, para proyector) ===== -->
+  <section class="show" id="show">
+    <span class="show-eyebrow">⚡ Demo en vivo</span>
+    <h2 class="show-h">Dame el nombre de un negocio<br>y la IA lo despega al instante</h2>
+    <input class="show-input" id="showInput" placeholder="Ej: Bodega Doña Rosa, Cevichería El Puerto…" autocomplete="off">
+    <button class="btn show-btn" id="showBtn">✨ Despegar este negocio</button>
+    <div class="show-stage" id="showStage"></div>
+  </section>
+
+  <div class="divider"><span>Ahora pruébalo en tu celular 👇</span></div>
+
+  <div class="pillars" id="pillars"></div>
+
+  <section class="panel" id="panel">
+    <h2 class="ptitle" id="panelTitle"></h2>
+    <p class="phint" id="panelHint"></p>
+    <div id="fields"></div>
+    <button class="btn" id="goBtn">Crear con IA</button>
+
+    <div class="err" id="err"></div>
+
+    <div class="result" id="result">
+      <div class="rlabel">Listo, esto preparó la IA</div>
+      <div class="out" id="out"></div>
+      <button class="btn ghost copy" id="copyBtn">Copiar texto</button>
+
+      <details class="recipe-reveal">
+        <summary><span class="key">🔑</span> Ver la receta (el pedido que le hicimos)</summary>
+        <div class="promptbox" id="promptShown"></div>
+        <p class="promptnote">Copia esta receta y pégala en cualquier chatbot (ChatGPT, Gemini, Claude). Funciona igual. <b>Eso es lo que te llevas del taller.</b></p>
+      </details>
+    </div>
+  </section>
+
+  <div class="dare">Atrévete a <span>Triunfar</span></div>
+  <footer>
+    Creado por <a href="https://www.linkedin.com/in/harveyaquinomas/" target="_blank" rel="noopener">Harvey Aquino</a>
+  </footer>
+</div>
+
+<script>
+/* === CONFIG ===
+   Producción: el front NUNCA llama a Anthropic directo (CORS + expondría
+   la API key). Llama a nuestra función serverless en /api/generate, que
+   guarda la key segura y, opcionalmente, registra el lead en Supabase. */
+const API_ENDPOINT = "/api/generate";
+
+/* === RECETAS (data-driven: agrega/edita libremente) === */
+const PILLARS = [
+  { id:"ventas", icon:"📈", title:"Vender más", desc:"Promociones, respuestas y textos que atraen clientes",
+    recipes:[
+      { k:"🎉", title:"Crear una promoción", hint:"Para redes o WhatsApp, lista en segundos.",
+        fields:[{id:"negocio",label:"¿Qué negocio tienes?",ph:"Ej: bodega, restaurante, salón…"},{id:"detalle",label:"¿Qué quieres promocionar?",ph:"Ej: combo de fin de semana, 2x1…"}],
+        prompt:(v)=>`Eres experto en marketing para pequeños negocios. Escribe una promoción corta, atractiva y lista para publicar en WhatsApp y Facebook para esta ${v.negocio}. La promoción es: ${v.detalle}. Usa un emoji o dos, un llamado a la acción claro y tono cercano peruano. Máximo 4 líneas.` },
+      { k:"💬", title:"Responder a un cliente", hint:"Una respuesta amable y profesional.",
+        fields:[{id:"negocio",label:"Tu negocio",ph:"Ej: ferretería"},{id:"detalle",label:"Pega el mensaje del cliente",ph:"Ej: ¿tienen delivery? ¿por qué tan caro?…",area:true}],
+        prompt:(v)=>`Eres el dueño de una ${v.negocio} y atiendes con amabilidad y profesionalismo. Un cliente escribió: "${v.detalle}". Redacta una respuesta breve, cordial y que invite a comprar. Tono peruano cercano.` },
+      { k:"🏷️", title:"Describir un producto",hint:"Texto que vende, no que aburre.",
+        fields:[{id:"detalle",label:"¿Qué producto vendes?",ph:"Ej: mochilas de cuero hechas a mano"}],
+        prompt:(v)=>`Escribe una descripción de venta atractiva y breve (máximo 60 palabras) para este producto: ${v.detalle}. Resalta el beneficio para el cliente, no solo características. Tono cercano y persuasivo.` },
+    ]},
+  { id:"procesos", icon:"⚙️", title:"Procesos más ágiles", desc:"Cotizaciones, cartas y documentos sin demorar",
+    recipes:[
+      { k:"🧾", title:"Armar una cotización",hint:"Una proforma ordenada y formal.",
+        fields:[{id:"negocio",label:"Tu negocio",ph:"Ej: servicio de catering"},{id:"detalle",label:"¿Qué incluye y para quién?",ph:"Ej: 3 servicios para evento de 50 personas…",area:true}],
+        prompt:(v)=>`Eres asistente administrativo de una ${v.negocio}. Redacta el texto de una cotización/proforma profesional y ordenada con base en esto: ${v.detalle}. Incluye encabezado, detalle de ítems y un cierre cordial. No inventes precios; deja espacios [PRECIO] para completar.` },
+      { k:"✉️", title:"Redactar un mensaje formal",hint:"Cartas y comunicados bien escritos.",
+        fields:[{id:"detalle",label:"¿Qué necesitas comunicar y a quién?",ph:"Ej: pedir prórroga al proveedor X…",area:true}],
+        prompt:(v)=>`Redacta un mensaje formal, claro y respetuoso en español sobre lo siguiente: ${v.detalle}. Que sea breve y profesional, listo para enviar.` },
+      { k:"📄", title:"Resumir un documento",hint:"Pega un texto largo y entiéndelo rápido.",
+        fields:[{id:"detalle",label:"Pega aquí el texto a resumir",ph:"Pega el documento, contrato, requisito…",area:true}],
+        prompt:(v)=>`Resume el siguiente texto en lenguaje simple, con los puntos clave en una lista corta de viñetas. Si hay pasos o requisitos, ordénalos. Texto:\n\n${v.detalle}` },
+    ]},
+  { id:"productividad", icon:"⚡", title:"Productividad", desc:"Tu asistente personal: correos, tareas y planes",
+    recipes:[
+      { k:"✅", title:"De nota a lista de tareas",hint:"Convierte tus ideas sueltas en un plan.",
+        fields:[{id:"detalle",label:"Escribe o dicta tus ideas sueltas",ph:"Ej: llamar al banco, comprar insumos, pagar luz…",area:true}],
+        prompt:(v)=>`Organiza estas ideas sueltas en una lista de tareas clara y priorizada, con lo más urgente primero:\n\n${v.detalle}` },
+      { k:"📧", title:"Redactar un correo",hint:"Profesional y al grano.",
+        fields:[{id:"detalle",label:"¿De qué trata el correo?",ph:"Ej: agradecer a un cliente y ofrecer descuento…",area:true}],
+        prompt:(v)=>`Redacta un correo profesional, breve y cordial en español sobre: ${v.detalle}. Incluye asunto sugerido.` },
+      { k:"🗓️", title:"Ordenar mi semana",hint:"Un plan simple para no perderte.",
+        fields:[{id:"detalle",label:"¿Qué tienes que hacer esta semana?",ph:"Lista todo lo que tengas en mente…",area:true}],
+        prompt:(v)=>`Organiza estas actividades en un plan semanal realista (lunes a domingo), agrupando por día y marcando lo prioritario:\n\n${v.detalle}` },
+    ]},
+  { id:"tramite", icon:"🏛️", title:"Trámite municipal", desc:"Entiende tu licencia y requisitos sin enredos",
+    recipes:[
+      { k:"📋", title:"Explícame los requisitos",hint:"Pega los requisitos y te los explico fácil.",
+        fields:[{id:"detalle",label:"Pega los requisitos o escribe tu duda",ph:"Ej: requisitos para licencia de funcionamiento…",area:true}],
+        prompt:(v)=>`Eres un asesor que ayuda a microempresarios con trámites municipales en Perú. Explica de forma simple, en una lista de pasos claros, lo siguiente. Si falta información, indica qué debería consultar en su municipalidad:\n\n${v.detalle}` },
+      { k:"📝", title:"Redactar una solicitud",hint:"El documento listo para presentar.",
+        fields:[{id:"detalle",label:"¿Qué quieres solicitar?",ph:"Ej: licencia de funcionamiento para mi bodega…",area:true}],
+        prompt:(v)=>`Redacta el texto de una solicitud formal dirigida a una municipalidad en Perú para: ${v.detalle}. Usa formato de solicitud (Sumilla, señor alcalde, cuerpo, despedida) y deja [DATOS] donde falte completar.` },
+    ]},
+];
+
+/* === Llamada al proxy: el front manda prompt + lead opcional === */
+async function askAI(prompt, lead){
+  const res=await fetch(API_ENDPOINT,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ prompt, lead })
+  });
+  if(!res.ok) throw new Error("status "+res.status);
+  const data=await res.json();
+  return ((data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n")).trim();
+}
+
+/* === RENDER PILARES === */
+const pillarsEl = document.getElementById("pillars");
+PILLARS.forEach(p=>{
+  const btn=document.createElement("button");
+  btn.className="pillar"; btn.setAttribute("aria-expanded","false");
+  btn.innerHTML=`<span class="ico">${p.icon}</span><span class="ptxt"><b>${p.title}</b><span>${p.desc}</span></span><span class="arr">›</span>`;
+  const rec=document.createElement("div"); rec.className="recipes";
+  p.recipes.forEach((r,i)=>{
+    const rb=document.createElement("button"); rb.className="recipe";
+    rb.innerHTML=`<span class="rk">${r.k}</span>${r.title}`;
+    rb.onclick=()=>openRecipe(p,r);
+    rec.appendChild(rb);
+  });
+  btn.onclick=()=>{
+    const open=rec.classList.toggle("open");
+    btn.setAttribute("aria-expanded",open?"true":"false");
+  };
+  pillarsEl.appendChild(btn); pillarsEl.appendChild(rec);
+});
+
+/* === PANEL DE RECETA === */
+const panel=document.getElementById("panel");
+const fieldsEl=document.getElementById("fields");
+let current=null;
+
+function openRecipe(p,r){
+  current=r;
+  document.getElementById("panelTitle").textContent=r.title;
+  document.getElementById("panelHint").textContent=r.hint;
+  fieldsEl.innerHTML="";
+  r.fields.forEach(f=>{
+    const lab=document.createElement("label"); lab.textContent=f.label; lab.setAttribute("for","f_"+f.id);
+    const inp=document.createElement(f.area?"textarea":"input");
+    inp.className="f"; inp.id="f_"+f.id; inp.placeholder=f.ph||"";
+    fieldsEl.appendChild(lab); fieldsEl.appendChild(inp);
+  });
+  document.getElementById("result").classList.remove("open");
+  document.getElementById("err").classList.remove("open");
+  panel.classList.add("open");
+  panel.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+/* === LLAMADA A LA IA (panel de recetas) === */
+const goBtn=document.getElementById("goBtn");
+goBtn.onclick=async ()=>{
+  if(!current) return;
+  const v={};
+  let empty=true;
+  current.fields.forEach(f=>{ const val=document.getElementById("f_"+f.id).value.trim(); v[f.id]=val; if(val) empty=false; });
+  if(empty){ showErr("Escribe algo primero para que la IA pueda ayudarte."); return; }
+
+  const prompt=current.prompt(v);
+  document.getElementById("err").classList.remove("open");
+  document.getElementById("result").classList.remove("open");
+  goBtn.disabled=true; goBtn.innerHTML=`<span class="spinner"></span> Creando…`;
+
+  try{
+    const text=await askAI(prompt,{ negocio:v.negocio||current.title, tipo:"receta:"+current.title });
+    document.getElementById("out").textContent=text||"La IA no devolvió texto. Intenta de nuevo.";
+    document.getElementById("promptShown").textContent=prompt;
+    document.getElementById("result").classList.add("open");
+  }catch(e){
+    // Si el proxy no responde, igual mostramos la receta: el valor pedagógico se mantiene.
+    document.getElementById("promptShown").textContent=prompt;
+    showErr("No se pudo conectar con la IA en este momento. Igual aquí abajo tienes la receta: cópiala y pégala en cualquier chatbot.");
+    document.getElementById("out").textContent="(Sin conexión a la IA — usa la receta de abajo en ChatGPT, Gemini o Claude.)";
+    document.getElementById("result").classList.add("open");
+  }finally{
+    goBtn.disabled=false; goBtn.textContent="Crear con IA";
+  }
+};
+
+function showErr(msg){ const e=document.getElementById("err"); e.textContent=msg; e.classList.add("open"); }
+
+/* === DEMO EN VIVO: GENERADOR DE AFICHES === */
+const showBtn=document.getElementById("showBtn");
+const showInput=document.getElementById("showInput");
+const showStage=document.getElementById("showStage");
+
+const SHOW_PROMPT=(negocio)=>`Eres director creativo de publicidad para pequeños negocios en Perú. Para el negocio "${negocio}", diseña un afiche promocional. Devuelve SOLO un objeto JSON válido, sin texto antes ni después, sin backticks, con esta forma exacta:
+{
+ "rubro":"el rubro en 1-2 palabras",
+ "nombre":"el nombre del negocio, puedes pulirlo levemente",
+ "eslogan":"frase gancho corta y vendedora (máx 7 palabras)",
+ "oferta_titulo":"la oferta en grande, ej: 2x1, -30%, COMBO DÚO",
+ "oferta_detalle":"una línea que explica la oferta",
+ "precio":"precio en soles si aplica, ej: S/ 9.90, o cadena vacía",
+ "cta":"llamado a la acción corto, ej: Pídelo por WhatsApp",
+ "hashtags":["#uno","#dos","#tres"],
+ "emoji":"un solo emoji del rubro",
+ "bg1":"#hex color OSCURO y vivo para fondo",
+ "bg2":"#hex segundo color OSCURO para el degradado",
+ "accent":"#hex color VIVO y brillante para el sticker de oferta",
+ "whatsapp":"mensaje corto listo para difundir por WhatsApp, máx 4 líneas, con emojis"
+}
+Texto en español peruano. Colores bg1 y bg2 deben ser oscuros para que el texto blanco se lea.`;
+
+function parseJSON(text){
+  let t=text.trim().replace(/^```json\s*|^```\s*|```$/g,"").trim();
+  const a=t.indexOf("{"), b=t.lastIndexOf("}");
+  if(a>=0&&b>=0) t=t.slice(a,b+1);
+  return JSON.parse(t);
+}
+
+showBtn.onclick=async ()=>{
+  const negocio=showInput.value.trim();
+  if(!negocio){ showInput.focus(); return; }
+  showStage.innerHTML="";
+  showBtn.disabled=true; showBtn.innerHTML=`<span class="spinner"></span> Diseñando…`;
+  let spec=null;
+  try{
+    const text=await askAI(SHOW_PROMPT(negocio),{ negocio, tipo:"afiche" });
+    spec=parseJSON(text);
+  }catch(e){
+    // Afiche de respaldo: la pantalla nunca queda en blanco delante de la sala.
+    spec={rubro:"negocio",nombre:negocio,eslogan:"Lo mejor, cerca de ti",oferta_titulo:"OFERTA",
+      oferta_detalle:"Promoción especial esta semana",precio:"",cta:"Escríbenos por WhatsApp",
+      hashtags:["#"+negocio.replace(/\s+/g,"")],emoji:"⭐",bg1:"#13322A",bg2:"#0E1A15",accent:"#15B077",
+      whatsapp:"(Sin conexión a la IA — revisa el internet e intenta de nuevo.)"};
+  }
+  showBtn.disabled=false; showBtn.textContent="✨ Diseñar otro negocio";
+  renderFlyer(spec);
+};
+
+/* Renderiza el afiche diseñado — el momento visual de "ohhh" */
+function renderFlyer(s){
+  const tags=(s.hashtags||[]).join("  ");
+  const flyer=document.createElement("div"); flyer.className="flyer";
+  flyer.style.setProperty("--b1",s.bg1||"#13322A");
+  flyer.style.setProperty("--b2",s.bg2||"#0E1A15");
+  flyer.style.setProperty("--ac",s.accent||"#15B077");
+  flyer.innerHTML=`
+    <div class="flyer-in">
+      <span class="flyer-rubro">${s.emoji||"⭐"} ${s.rubro||""}</span>
+      <div class="flyer-name">${s.nombre||""}</div>
+      <div class="flyer-eslogan">${s.eslogan||""}</div>
+      <div class="flyer-badge">${s.oferta_titulo||""}</div>
+      <div class="flyer-detalle">${s.oferta_detalle||""} ${s.precio?("· "+s.precio):""}</div>
+      <div class="flyer-cta">${s.cta||""}</div>
+      <div class="flyer-tags">${tags}</div>
+      <div class="flyer-mark">hecho con IA · VeyharCorp</div>
+    </div>`;
+  showStage.appendChild(flyer);
+
+  if(s.whatsapp){
+    const w=document.createElement("div"); w.className="scard";
+    w.innerHTML=`<div class="stag">📱 Texto para difundir por WhatsApp</div><div class="sbody">${s.whatsapp}</div>
+      <button class="btn ghost" style="margin-top:10px" id="wCopy">Copiar texto</button>`;
+    showStage.appendChild(w);
+    w.querySelector("#wCopy").onclick=()=>{ navigator.clipboard?.writeText(s.whatsapp);
+      const b=w.querySelector("#wCopy"); b.textContent="¡Copiado!"; setTimeout(()=>b.textContent="Copiar texto",1500); };
+  }
+}
+
+/* === COPIAR === */
+document.getElementById("copyBtn").onclick=()=>{
+  const t=document.getElementById("out").textContent;
+  navigator.clipboard?.writeText(t);
+  const b=document.getElementById("copyBtn"); b.textContent="¡Copiado!";
+  setTimeout(()=>b.textContent="Copiar texto",1500);
+};
+</script>
+</body>
+</html>
