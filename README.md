@@ -1,9 +1,15 @@
 # IA para tu Negocio · VeyharCorp
 
-Demo de taller: escribes el nombre de un negocio y la IA **diseña un afiche
-promocional de verdad** (nombre, eslogan, sticker de oferta, colores, hashtags
-y texto listo para WhatsApp). La IA decide el diseño en JSON; la app lo pinta
-con CSS. Patrón **Blueprint Engine**: la IA decide, la app renderiza.
+Demo de taller: escribes el nombre de un negocio y la IA **diseña 3 afiches
+promocionales de verdad** —uno para redes, uno para volante y uno para historia
+de Instagram— en un carrusel deslizable, cada uno con su nombre, eslogan, sticker
+de oferta, colores, hashtags y texto listo para WhatsApp. El botón **"Otro estilo"**
+regenera el mismo negocio con otra propuesta (la IA improvisa, no repite).
+La IA decide el diseño en JSON; la app lo pinta con CSS. Patrón **Blueprint
+Engine**: la IA decide, la app renderiza.
+
+📣 El guion para manejar el demo en vivo (pedir el voluntario, capitalizar
+cuando la sala saca el celular y cerrar la venta) está en **`GUION-EN-VIVO.md`**.
 
 ## Arquitectura
 

@@ -191,6 +191,30 @@
   .flyer-tags{margin-top:16px;font-size:13px;color:var(--ac);font-weight:600}
   .flyer-mark{margin-top:14px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.55}
 
+  /* ---- Carrusel de 3 formatos ---- */
+  .carousel{
+    display:flex; gap:14px; align-items:flex-start; overflow-x:auto;
+    scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+    padding:2px 2px 6px; margin:2px -2px 0; scrollbar-width:none;
+  }
+  .carousel::-webkit-scrollbar{display:none}
+  .cslide{flex:0 0 84%; max-width:300px; scroll-snap-align:center}
+  .cslide .fmt{
+    font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:700;
+    color:var(--green-bright); margin:0 0 8px 2px;
+  }
+  .cslide .flyer{height:100%; padding:24px 20px 18px}
+  .cslide.post .flyer{aspect-ratio:4/5}
+  .cslide.volante .flyer{aspect-ratio:3/4}
+  .cslide.historia{flex-basis:64%; max-width:230px}
+  .cslide.historia .flyer{aspect-ratio:9/16}
+  .dots{display:flex; gap:7px; justify-content:center; margin-top:6px}
+  .dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .2s,transform .2s}
+  .dots i.on{background:var(--green-bright);transform:scale(1.25)}
+  .swipe-hint{text-align:center;color:rgba(255,255,255,.55);font-size:12px;margin-top:8px}
+  .btn.ghost.otro{color:#fff; border-color:rgba(255,255,255,.3); margin-top:16px}
+  .btn.ghost.otro:hover{background:rgba(255,255,255,.08)}
+
   .divider{display:flex;align-items:center;gap:12px;margin:30px 0 8px;color:var(--muted);font-size:13px;font-weight:600;white-space:nowrap}
   .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
 
@@ -387,28 +411,25 @@ goBtn.onclick=async ()=>{
 
 function showErr(msg){ const e=document.getElementById("err"); e.textContent=msg; e.classList.add("open"); }
 
-/* === DEMO EN VIVO: GENERADOR DE AFICHES === */
+/* === DEMO EN VIVO: GENERADOR DE AFICHES (3 formatos) === */
 const showBtn=document.getElementById("showBtn");
 const showInput=document.getElementById("showInput");
 const showStage=document.getElementById("showStage");
+let currentNegocio="";
 
-const SHOW_PROMPT=(negocio)=>`Eres director creativo de publicidad para pequeños negocios en Perú. Para el negocio "${negocio}", diseña un afiche promocional. Devuelve SOLO un objeto JSON válido, sin texto antes ni después, sin backticks, con esta forma exacta:
+const SHOW_PROMPT=(negocio,variar)=>`Eres director creativo de publicidad para pequeños negocios en Perú. Para el negocio "${negocio}", diseña TRES versiones del mismo afiche promocional, una por cada formato: "Post para redes", "Volante" e "Historia de Instagram". Cada versión debe verse DISTINTA a las otras: su propia paleta de colores, su propio ángulo de oferta y su propio eslogan. Devuelve SOLO un objeto JSON válido, sin texto antes ni después, sin backticks, con esta forma exacta:
 {
- "rubro":"el rubro en 1-2 palabras",
  "nombre":"el nombre del negocio, puedes pulirlo levemente",
- "eslogan":"frase gancho corta y vendedora (máx 7 palabras)",
- "oferta_titulo":"la oferta en grande, ej: 2x1, -30%, COMBO DÚO",
- "oferta_detalle":"una línea que explica la oferta",
- "precio":"precio en soles si aplica, ej: S/ 9.90, o cadena vacía",
- "cta":"llamado a la acción corto, ej: Pídelo por WhatsApp",
- "hashtags":["#uno","#dos","#tres"],
+ "rubro":"el rubro en 1-2 palabras",
  "emoji":"un solo emoji del rubro",
- "bg1":"#hex color OSCURO y vivo para fondo",
- "bg2":"#hex segundo color OSCURO para el degradado",
- "accent":"#hex color VIVO y brillante para el sticker de oferta",
+ "afiches":[
+  {"formato":"Post para redes","eslogan":"frase gancho corta (máx 7 palabras)","oferta_titulo":"oferta en grande, ej: 2x1, -30%","oferta_detalle":"una línea que explica la oferta","precio":"precio en soles si aplica, ej: S/ 9.90, o cadena vacía","cta":"llamado a la acción corto","hashtags":["#uno","#dos","#tres"],"bg1":"#hex OSCURO","bg2":"#hex OSCURO","accent":"#hex VIVO y brillante"},
+  {"formato":"Volante","eslogan":"otra frase gancho","oferta_titulo":"otra oferta en grande","oferta_detalle":"línea que la explica","precio":"precio o cadena vacía","cta":"otro llamado a la acción","hashtags":["#uno","#dos","#tres"],"bg1":"#hex OSCURO distinto","bg2":"#hex OSCURO","accent":"#hex VIVO distinto"},
+  {"formato":"Historia de Instagram","eslogan":"otra frase gancho","oferta_titulo":"otra oferta en grande","oferta_detalle":"línea que la explica","precio":"precio o cadena vacía","cta":"otro llamado a la acción","hashtags":["#uno","#dos","#tres"],"bg1":"#hex OSCURO distinto","bg2":"#hex OSCURO","accent":"#hex VIVO distinto"}
+ ],
  "whatsapp":"mensaje corto listo para difundir por WhatsApp, máx 4 líneas, con emojis"
 }
-Texto en español peruano. Colores bg1 y bg2 deben ser oscuros para que el texto blanco se lea.`;
+Texto en español peruano. Los bg1 y bg2 siempre oscuros para que el texto blanco se lea.${variar?" IMPORTANTE: propón algo TOTALMENTE distinto a cualquier versión anterior — otras paletas, otras ofertas y otros eslóganes. Sorprende.":""}`;
 
 function parseJSON(text){
   let t=text.trim().replace(/^```json\s*|^```\s*|```$/g,"").trim();
@@ -417,45 +438,90 @@ function parseJSON(text){
   return JSON.parse(t);
 }
 
-showBtn.onclick=async ()=>{
-  const negocio=showInput.value.trim();
-  if(!negocio){ showInput.focus(); return; }
+/* Afiche(s) de respaldo: la pantalla nunca queda en blanco delante de la sala. */
+function fallbackSpec(negocio){
+  const paletas=[
+    {bg1:"#13322A",bg2:"#0E1A15",accent:"#15B077"},
+    {bg1:"#2A1530",bg2:"#160A1C",accent:"#E0A52E"},
+    {bg1:"#102A3A",bg2:"#0A1620",accent:"#36C6F0"}
+  ];
+  const fmt=["Post para redes","Volante","Historia de Instagram"];
+  return {
+    nombre:negocio, rubro:"negocio", emoji:"⭐",
+    afiches:paletas.map((p,i)=>({formato:fmt[i],eslogan:"Lo mejor, cerca de ti",oferta_titulo:"OFERTA",
+      oferta_detalle:"Promoción especial esta semana",precio:"",cta:"Escríbenos por WhatsApp",
+      hashtags:["#"+negocio.replace(/\s+/g,"")], ...p})),
+    whatsapp:"(Sin conexión a la IA — revisa el internet e intenta de nuevo.)"
+  };
+}
+
+async function generate(negocio,variar){
+  currentNegocio=negocio;
   showStage.innerHTML="";
   showBtn.disabled=true; showBtn.innerHTML=`<span class="spinner"></span> Diseñando…`;
   let spec=null;
   try{
-    const text=await askAI(SHOW_PROMPT(negocio),{ negocio, tipo:"afiche" });
+    const text=await askAI(SHOW_PROMPT(negocio,variar),{ negocio, tipo:variar?"afiche:otro-estilo":"afiche" });
     spec=parseJSON(text);
-  }catch(e){
-    // Afiche de respaldo: la pantalla nunca queda en blanco delante de la sala.
-    spec={rubro:"negocio",nombre:negocio,eslogan:"Lo mejor, cerca de ti",oferta_titulo:"OFERTA",
-      oferta_detalle:"Promoción especial esta semana",precio:"",cta:"Escríbenos por WhatsApp",
-      hashtags:["#"+negocio.replace(/\s+/g,"")],emoji:"⭐",bg1:"#13322A",bg2:"#0E1A15",accent:"#15B077",
-      whatsapp:"(Sin conexión a la IA — revisa el internet e intenta de nuevo.)"};
-  }
+  }catch(e){ spec=fallbackSpec(negocio); }
+  if(!spec||!Array.isArray(spec.afiches)||!spec.afiches.length) spec=fallbackSpec(negocio);
   showBtn.disabled=false; showBtn.textContent="✨ Diseñar otro negocio";
-  renderFlyer(spec);
+  renderCarousel(spec);
+}
+
+showBtn.onclick=()=>{
+  const negocio=showInput.value.trim();
+  if(!negocio){ showInput.focus(); return; }
+  generate(negocio,false);
 };
 
-/* Renderiza el afiche diseñado — el momento visual de "ohhh" */
-function renderFlyer(s){
-  const tags=(s.hashtags||[]).join("  ");
-  const flyer=document.createElement("div"); flyer.className="flyer";
-  flyer.style.setProperty("--b1",s.bg1||"#13322A");
-  flyer.style.setProperty("--b2",s.bg2||"#0E1A15");
-  flyer.style.setProperty("--ac",s.accent||"#15B077");
-  flyer.innerHTML=`
-    <div class="flyer-in">
-      <span class="flyer-rubro">${s.emoji||"⭐"} ${s.rubro||""}</span>
-      <div class="flyer-name">${s.nombre||""}</div>
-      <div class="flyer-eslogan">${s.eslogan||""}</div>
-      <div class="flyer-badge">${s.oferta_titulo||""}</div>
-      <div class="flyer-detalle">${s.oferta_detalle||""} ${s.precio?("· "+s.precio):""}</div>
-      <div class="flyer-cta">${s.cta||""}</div>
-      <div class="flyer-tags">${tags}</div>
-      <div class="flyer-mark">hecho con IA · VeyharCorp</div>
-    </div>`;
-  showStage.appendChild(flyer);
+/* Renderiza los 3 afiches en un carrusel — el momento visual de "ohhh" */
+const FMT=[{c:"post",ic:"📱"},{c:"volante",ic:"📄"},{c:"historia",ic:"📲"}];
+function renderCarousel(s){
+  const afiches=s.afiches.slice(0,3);
+
+  const track=document.createElement("div"); track.className="carousel";
+  afiches.forEach((a,i)=>{
+    const f=FMT[i]||FMT[0];
+    const tags=(a.hashtags||[]).join("  ");
+    const slide=document.createElement("div"); slide.className="cslide "+f.c;
+    slide.innerHTML=`
+      <div class="fmt">${f.ic} ${a.formato||f.c}</div>
+      <div class="flyer" style="--b1:${a.bg1||"#13322A"};--b2:${a.bg2||"#0E1A15"};--ac:${a.accent||"#15B077"}">
+        <div class="flyer-in">
+          <span class="flyer-rubro">${s.emoji||"⭐"} ${s.rubro||""}</span>
+          <div class="flyer-name">${s.nombre||""}</div>
+          <div class="flyer-eslogan">${a.eslogan||""}</div>
+          <div class="flyer-badge">${a.oferta_titulo||""}</div>
+          <div class="flyer-detalle">${a.oferta_detalle||""} ${a.precio?("· "+a.precio):""}</div>
+          <div class="flyer-cta">${a.cta||""}</div>
+          <div class="flyer-tags">${tags}</div>
+          <div class="flyer-mark">hecho con IA · VeyharCorp</div>
+        </div>
+      </div>`;
+    track.appendChild(slide);
+  });
+  showStage.appendChild(track);
+
+  // Puntos + pista de deslizar
+  const dots=document.createElement("div"); dots.className="dots";
+  afiches.forEach((_,i)=>{ const d=document.createElement("i"); if(i===0) d.className="on"; dots.appendChild(d); });
+  showStage.appendChild(dots);
+  if(afiches.length>1){
+    const hint=document.createElement("div"); hint.className="swipe-hint";
+    hint.textContent="‹ desliza para ver los 3 formatos ›";
+    showStage.appendChild(hint);
+    track.addEventListener("scroll",()=>{
+      const i=Math.round(track.scrollLeft/(track.scrollWidth/afiches.length));
+      [...dots.children].forEach((d,k)=>d.classList.toggle("on",k===Math.min(i,afiches.length-1)));
+    });
+  }
+
+  // Botón "otro estilo": misma bodega, diseño nuevo. Prueba que la IA improvisa.
+  const otro=document.createElement("button"); otro.className="btn ghost otro";
+  otro.textContent="🎨 Otro estilo — la IA improvisa";
+  otro.onclick=()=>generate(currentNegocio,true);
+  showStage.appendChild(otro);
 
   if(s.whatsapp){
     const w=document.createElement("div"); w.className="scard";
