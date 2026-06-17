@@ -90,6 +90,18 @@
   input.f:focus, textarea.f:focus{outline:2px solid var(--green-bright); border-color:transparent}
   textarea.f{min-height:84px}
 
+  /* Chip de negocio activo (no se vuelve a pedir el negocio) */
+  .negchip{
+    display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;
+    background:var(--green-tint); border:1px solid #cfe6d9; color:var(--ink);
+    border-radius:99px; padding:8px 14px; font-size:14px; margin:0 0 14px;
+  }
+  .negchip b{font-weight:700}
+  .chip-change{
+    background:none; border:none; padding:0; font:inherit; font-weight:600;
+    color:var(--green); cursor:pointer; text-decoration:underline;
+  }
+
   .btn{
     width:100%; border:none; cursor:pointer; border-radius:12px; padding:14px;
     font:inherit; font-weight:700; font-size:16px; color:#fff;
@@ -194,21 +206,22 @@
   /* ---- Carrusel de 3 formatos ---- */
   .carousel-wrap{position:relative; margin:2px -2px 0}
   .carousel{
-    display:flex; gap:14px; align-items:flex-start; overflow-x:auto;
-    scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
-    padding:2px 2px 6px; scrollbar-width:none; scroll-behavior:smooth;
+    display:flex; gap:12px; align-items:flex-start; overflow-x:auto;
+    scroll-snap-type:x mandatory; scroll-behavior:smooth;
+    -webkit-overflow-scrolling:touch; touch-action:pan-x;
+    padding:2px 2px 6px; scrollbar-width:none;
   }
   .carousel::-webkit-scrollbar{display:none}
-  .cslide{flex:0 0 82%; max-width:290px; scroll-snap-align:center}
+  /* Mismo ancho para las 3: ~88% deja ver un trozo de la siguiente (insinúa swipe) */
+  .cslide{flex:0 0 88%; scroll-snap-align:center}
   .cslide .fmt{
     font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:700;
     color:var(--green-bright); margin:0 0 8px 2px;
   }
   /* min-height (no aspect-ratio): da el "formato" sin recortar el contenido */
-  .cslide .flyer{padding:24px 20px 18px; min-height:360px}
-  .cslide.volante .flyer{min-height:400px}
-  .cslide.historia{flex-basis:62%; max-width:215px}
-  .cslide.historia .flyer{min-height:440px}
+  .cslide .flyer{padding:24px 20px 18px; min-height:340px}
+  .cslide.volante .flyer{min-height:360px}
+  .cslide.historia .flyer{min-height:380px}
   /* Flechas: para mover el carrusel con clic en laptop */
   .cbtn{
     position:absolute; top:46%; transform:translateY(-50%); z-index:3;
@@ -292,10 +305,21 @@ const PILLARS = [
     recipes:[
       { k:"🎉", title:"Crear una promoción", hint:"Para redes o WhatsApp, lista en segundos.",
         fields:[{id:"negocio",label:"¿Qué negocio tienes?",ph:"Ej: bodega, restaurante, salón…"},{id:"detalle",label:"¿Qué quieres promocionar?",ph:"Ej: combo de fin de semana, 2x1…"}],
-        prompt:(v)=>`Eres experto en marketing para pequeños negocios. Escribe una promoción corta, atractiva y lista para publicar en WhatsApp y Facebook para esta ${v.negocio}. La promoción es: ${v.detalle}. Usa un emoji o dos, un llamado a la acción claro y tono cercano peruano. Máximo 4 líneas.` },
+        prompt:(v)=>`Eres copywriter peruano experto en marketing de barrio para bodegas y pequeños negocios. Escribe UNA promoción lista para enviar por WhatsApp para "${v.negocio}" sobre: "${v.detalle}".
+
+Reglas estrictas:
+- Texto plano. PROHIBIDO markdown: nada de #, *, **, _, ni líneas con ---.
+- Máximo 4 líneas cortas.
+- El primer renglón es un gancho que detenga el scroll. NO empieces con "¡Atención!", "¡Hola vecinos!" ni "¡Oferta!".
+- Pon el dato concreto (precio u oferta) bien claro.
+- Máximo 2 emojis, ubicados con intención.
+- Cierra con un llamado a la acción + un motivo REAL de urgencia (horario, stock limitado, "solo hoy").
+- Tono cálido y peruano de tienda de barrio. PROHIBIDOS los clichés: "la mejor calidad al mejor precio", "no te lo pierdas", "somos los mejores", "calidad garantizada".
+
+Devuelve solo la promoción, sin explicaciones.` },
       { k:"💬", title:"Responder a un cliente", hint:"Una respuesta amable y profesional.",
         fields:[{id:"negocio",label:"Tu negocio",ph:"Ej: ferretería"},{id:"detalle",label:"Pega el mensaje del cliente",ph:"Ej: ¿tienen delivery? ¿por qué tan caro?…",area:true}],
-        prompt:(v)=>`Eres el dueño de una ${v.negocio} y atiendes con amabilidad y profesionalismo. Un cliente escribió: "${v.detalle}". Redacta una respuesta breve, cordial y que invite a comprar. Tono peruano cercano.` },
+        prompt:(v)=>`Eres el dueño de "${v.negocio}" y atiendes con calidez y olfato comercial. Un cliente escribió: "${v.detalle}". Responde en máximo 3 líneas, texto plano sin markdown, tono peruano cercano: resuelve su duda e invítalo a comprar sin sonar desesperado. Sin clichés. Devuelve solo la respuesta.` },
       { k:"🏷️", title:"Describir un producto",hint:"Texto que vende, no que aburre.",
         fields:[{id:"detalle",label:"¿Qué producto vendes?",ph:"Ej: mochilas de cuero hechas a mano"}],
         prompt:(v)=>`Escribe una descripción de venta atractiva y breve (máximo 60 palabras) para este producto: ${v.detalle}. Resalta el beneficio para el cliente, no solo características. Tono cercano y persuasivo.` },
@@ -347,6 +371,18 @@ async function askAI(prompt, lead){
   return ((data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n")).trim();
 }
 
+/* === Estado en memoria (sin localStorage ni sessionStorage) === */
+let negocioActivo = "";
+
+/* Respaldo anti-markdown: limpia # * _ ` > y líneas --- antes de mostrar/copiar */
+function limpiar(t){
+  return (t||"")
+    .replace(/[#*_`>]+/g,"")        // quita #, *, _, `, >
+    .replace(/^\s*---\s*$/gm,"")    // quita líneas con ---
+    .replace(/\n{3,}/g,"\n\n")      // colapsa saltos de línea
+    .trim();
+}
+
 /* === RENDER PILARES === */
 const pillarsEl = document.getElementById("pillars");
 PILLARS.forEach(p=>{
@@ -378,6 +414,18 @@ function openRecipe(p,r){
   document.getElementById("panelHint").textContent=r.hint;
   fieldsEl.innerHTML="";
   r.fields.forEach(f=>{
+    // Si ya sabemos el negocio, no lo volvemos a pedir: mostramos un chip.
+    if(f.id==="negocio" && negocioActivo){
+      const chip=document.createElement("div"); chip.className="negchip";
+      chip.append("Negocio: ");
+      const b=document.createElement("b"); b.textContent=negocioActivo; chip.appendChild(b);
+      chip.append(" · ");
+      const ch=document.createElement("button"); ch.type="button"; ch.className="chip-change"; ch.textContent="cambiar";
+      ch.onclick=()=>{ negocioActivo=""; openRecipe(p,r); };
+      chip.appendChild(ch);
+      fieldsEl.appendChild(chip);
+      return;
+    }
     const lab=document.createElement("label"); lab.textContent=f.label; lab.setAttribute("for","f_"+f.id);
     const inp=document.createElement(f.area?"textarea":"input");
     inp.className="f"; inp.id="f_"+f.id; inp.placeholder=f.ph||"";
@@ -394,18 +442,29 @@ const goBtn=document.getElementById("goBtn");
 goBtn.onclick=async ()=>{
   if(!current) return;
   const v={};
-  let empty=true;
-  current.fields.forEach(f=>{ const val=document.getElementById("f_"+f.id).value.trim(); v[f.id]=val; if(val) empty=false; });
-  if(empty){ showErr("Escribe algo primero para que la IA pueda ayudarte."); return; }
+  let faltan=false;
+  current.fields.forEach(f=>{
+    const el=document.getElementById("f_"+f.id);
+    if(el){                                    // campo visible
+      const val=el.value.trim();
+      v[f.id]=val;
+      if(!val) faltan=true;
+      if(f.id==="negocio" && val) negocioActivo=val;   // recordamos el negocio
+    }else if(f.id==="negocio"){                // oculto tras el chip
+      v.negocio=negocioActivo;
+    }
+  });
+  if(faltan){ showErr("Completa los campos para que la IA pueda ayudarte."); return; }
 
-  const prompt=current.prompt(v);
+  // Respaldo: pedimos texto plano para CUALQUIER receta (refuerza el anti-markdown).
+  const prompt=current.prompt(v)+"\n\nResponde en texto plano, sin markdown (sin #, *, _ ni comillas invertidas).";
   document.getElementById("err").classList.remove("open");
   document.getElementById("result").classList.remove("open");
   goBtn.disabled=true; goBtn.innerHTML=`<span class="spinner"></span> Creando…`;
 
   try{
     const text=await askAI(prompt,{ negocio:v.negocio||current.title, tipo:"receta:"+current.title });
-    document.getElementById("out").textContent=text||"La IA no devolvió texto. Intenta de nuevo.";
+    document.getElementById("out").textContent=limpiar(text)||"La IA no devolvió texto. Intenta de nuevo.";
     document.getElementById("promptShown").textContent=prompt;
     document.getElementById("result").classList.add("open");
   }catch(e){
@@ -427,19 +486,19 @@ const showInput=document.getElementById("showInput");
 const showStage=document.getElementById("showStage");
 let currentNegocio="";
 
-const SHOW_PROMPT=(negocio,variar)=>`Eres director creativo de publicidad para pequeños negocios en Perú. Para el negocio "${negocio}", diseña TRES versiones del mismo afiche promocional, una por cada formato: "Post para redes", "Volante" e "Historia de Instagram". Cada versión debe verse DISTINTA a las otras: su propia paleta de colores, su propio ángulo de oferta y su propio eslogan. Devuelve SOLO un objeto JSON válido, sin texto antes ni después, sin backticks, con esta forma exacta:
+const SHOW_PROMPT=(negocio,variar)=>`Eres director creativo de publicidad para pequeños negocios en Perú. Para "${negocio}", diseña TRES versiones del afiche, una por cada formato: "Post para redes", "Volante" e "Historia de Instagram". Cada versión DISTINTA a las otras: su propia paleta, su propia oferta y su propio eslogan. Devuelve SOLO un objeto JSON válido, sin backticks ni texto antes/después, con esta forma:
 {
  "nombre":"el nombre del negocio, puedes pulirlo levemente",
- "rubro":"el rubro en 1-2 palabras",
+ "rubro":"rubro en 1-2 palabras",
  "emoji":"un solo emoji del rubro",
  "afiches":[
-  {"formato":"Post para redes","eslogan":"frase gancho corta (máx 7 palabras)","oferta_titulo":"oferta en grande, ej: 2x1, -30%","oferta_detalle":"una línea que explica la oferta","precio":"precio en soles si aplica, ej: S/ 9.90, o cadena vacía","cta":"llamado a la acción corto","hashtags":["#uno","#dos","#tres"],"bg1":"#hex OSCURO","bg2":"#hex OSCURO","accent":"#hex VIVO y brillante"},
-  {"formato":"Volante","eslogan":"otra frase gancho","oferta_titulo":"otra oferta en grande","oferta_detalle":"línea que la explica","precio":"precio o cadena vacía","cta":"otro llamado a la acción","hashtags":["#uno","#dos","#tres"],"bg1":"#hex OSCURO distinto","bg2":"#hex OSCURO","accent":"#hex VIVO distinto"},
-  {"formato":"Historia de Instagram","eslogan":"otra frase gancho","oferta_titulo":"otra oferta en grande","oferta_detalle":"línea que la explica","precio":"precio o cadena vacía","cta":"otro llamado a la acción","hashtags":["#uno","#dos","#tres"],"bg1":"#hex OSCURO distinto","bg2":"#hex OSCURO","accent":"#hex VIVO distinto"}
+  {"formato":"Post para redes","eslogan":"máx 6 palabras, fresco, sin clichés","oferta_titulo":"oferta CONCRETA con número: ej 3x2, -30%, S/ 5 el combo. Nunca genérica como OFERTA u OPORTUNIDAD","oferta_detalle":"una línea que explica la oferta","precio":"precio en soles si aplica, ej S/ 9.90, o cadena vacía","cta":"llamado a la acción corto, ej: Pídelo por WhatsApp","hashtags":["#uno","#dos","#tres"],"bg1":"#hex OSCURO y saturado para fondo","bg2":"#hex segundo color OSCURO para el degradado","accent":"#hex VIVO y brillante para el sticker"},
+  {"formato":"Volante","eslogan":"otro eslogan máx 6 palabras, sin clichés","oferta_titulo":"otra oferta CONCRETA con número","oferta_detalle":"línea que la explica","precio":"precio o cadena vacía","cta":"otro llamado a la acción","hashtags":["#uno","#dos","#tres"],"bg1":"#hex OSCURO distinto","bg2":"#hex OSCURO","accent":"#hex VIVO distinto"},
+  {"formato":"Historia de Instagram","eslogan":"otro eslogan máx 6 palabras, sin clichés","oferta_titulo":"otra oferta CONCRETA con número","oferta_detalle":"línea que la explica","precio":"precio o cadena vacía","cta":"otro llamado a la acción","hashtags":["#uno","#dos","#tres"],"bg1":"#hex OSCURO distinto","bg2":"#hex OSCURO","accent":"#hex VIVO distinto"}
  ],
- "whatsapp":"mensaje corto listo para difundir por WhatsApp, máx 4 líneas, con emojis"
+ "whatsapp":"mensaje listo para WhatsApp, texto plano sin markdown, máx 4 líneas, 1-2 emojis"
 }
-Texto en español peruano. Los bg1 y bg2 siempre oscuros para que el texto blanco se lea.${variar?" IMPORTANTE: propón algo TOTALMENTE distinto a cualquier versión anterior — otras paletas, otras ofertas y otros eslóganes. Sorprende.":""}`;
+Reglas: PROHIBIDOS los clichés ("calidad y precio", "tu mejor opción", "la mejor calidad"). Las ofertas SIEMPRE concretas y con número. bg1 y bg2 deben ser oscuros y saturados para que el texto blanco se lea (evita amarillos y pasteles de fondo). Todo en español peruano.${variar?" IMPORTANTE: propón algo TOTALMENTE distinto a cualquier versión anterior — otras paletas, otras ofertas y otros eslóganes. Sorprende.":""}`;
 
 function parseJSON(text){
   let t=text.trim().replace(/^```json\s*|^```\s*|```$/g,"").trim();
@@ -482,6 +541,7 @@ async function generate(negocio,variar){
 showBtn.onclick=()=>{
   const negocio=showInput.value.trim();
   if(!negocio){ showInput.focus(); return; }
+  negocioActivo=negocio;          // recordamos el negocio para las recetas de abajo
   generate(negocio,false);
 };
 
@@ -516,7 +576,7 @@ function renderCarousel(s){
   wrap.appendChild(track);
   showStage.appendChild(wrap);
 
-  const stepWidth=()=>{ const c=track.querySelector(".cslide"); return c?c.offsetWidth+14:300; };
+  const stepWidth=()=>{ const c=track.querySelector(".cslide"); return c?c.offsetWidth+12:300; };
 
   // Puntos clicables
   const dots=document.createElement("div"); dots.className="dots";
@@ -557,12 +617,14 @@ function renderCarousel(s){
   otro.onclick=()=>generate(currentNegocio,true);
   showStage.appendChild(otro);
 
-  if(s.whatsapp){
+  const wa=limpiar(s.whatsapp);
+  if(wa){
     const w=document.createElement("div"); w.className="scard";
-    w.innerHTML=`<div class="stag">📱 Texto para difundir por WhatsApp</div><div class="sbody">${s.whatsapp}</div>
+    w.innerHTML=`<div class="stag">📱 Texto para difundir por WhatsApp</div><div class="sbody"></div>
       <button class="btn ghost" style="margin-top:10px" id="wCopy">Copiar texto</button>`;
+    w.querySelector(".sbody").textContent=wa;   // texto plano, sin markdown
     showStage.appendChild(w);
-    w.querySelector("#wCopy").onclick=()=>{ navigator.clipboard?.writeText(s.whatsapp);
+    w.querySelector("#wCopy").onclick=()=>{ navigator.clipboard?.writeText(wa);
       const b=w.querySelector("#wCopy"); b.textContent="¡Copiado!"; setTimeout(()=>b.textContent="Copiar texto",1500); };
   }
 }
